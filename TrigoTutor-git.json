@@ -1,0 +1,1635 @@
+{
+  "name": "TrigoTutor-git",
+  "nodes": [
+    {
+      "parameters": {
+        "model": "nomic-embed-text:latest"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOllama",
+      "typeVersion": 1,
+      "position": [
+        320,
+        544
+      ],
+      "id": "84a64f72-d3a3-4277-bc04-734eb053f8f2",
+      "name": "Embeddings Ollama10",
+      "credentials": {
+        "ollamaApi": {
+          "id": "xHuYe0MDGOs9IpBW",
+          "name": "Local Ollama service"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -1040,
+        800
+      ],
+      "id": "a378e157-2991-452d-8bce-2ca8cdbf8922",
+      "name": "Merge5"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Gemini response structure:\n// { candidates: [ { content: { parts: [ { text: \"extracted question\" } ] } } ] }\n\nconst geminiResponse = $input.first().json;\n\n// Extract the text Gemini returned\nconst extractedQuestion = geminiResponse.candidates[0].content.parts[0].text.trim();\n\n// Get sessionId and language from the original Code in JavaScript node\nconst originalData = $('Code in JavaScript').first().json;\n\n// Pass forward in the SAME format as text-only messages\n// so Router Agent works without any changes\nreturn [{\n  json: {\n    sessionId:       originalData.sessionId,\n    chatInput:       extractedQuestion,\n    originalMessage: extractedQuestion,\n    cleanedMessage:  extractedQuestion,\n    timestamp:       new Date().toISOString(),\n    language:        originalData.language || \"english\",\n    isMeaningful:    true,\n    hasImage:        true,\n    metadata:        originalData.metadata\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1152,
+        560
+      ],
+      "id": "ccd41edc-a589-4241-aaf1-d266a01d09a5",
+      "name": "Code in JavaScript13"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "x-goog-api-key",
+              "value": "YOUR_GEMINI_API_KEY_HERE"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"contents\": [\n    {\n      \"parts\": [\n        {\n          \"text\": \"You are a math question extractor for SPM Additional Mathematics Form 4, Chapter 9 Solution of Triangles.\\n\\nLook at this image carefully. Extract ONLY the math question or problem shown in the image.\\n\\nRules:\\n- Return the extracted question as plain text only\\n- Do not solve it\\n- Do not explain anything\\n- If the image contains multiple questions, extract all of them\\n- If the image is not a math question, return exactly: NO_MATH_QUESTION_FOUND\"\n        },\n        {\n          \"inline_data\": {\n            \"mime_type\": \"{{ $json.imageType }}\",\n            \"data\": \"{{ $json.image }}\"\n          }\n        }\n      ]\n    }\n  ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -1312,
+        560
+      ],
+      "id": "771824ca-9382-4675-985b-b871823419fd",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Search the SPM Additional Mathematics MALAY textbook \n(Buku Teks Trigonometri, BAB 9: Penyelesaian Segi Tiga, \nKSSM Tingkatan 4) for relevant formulas, definitions, \nexamples and explanations in BAHASA MELAYU. Use this \ntool when the student asks in Bahasa Melayu or requests \na Malay explanation. Use FIRST before answering any \nquestion about petua sinus, petua kosinus, luas segi tiga, \nrumus Heron or kes berambiguiti. Input should be the \nstudent's question or topic they are asking about.",
+        "qdrantCollection": {
+          "__rl": true,
+          "value": "bukuteks_trigonometri",
+          "mode": "list",
+          "cachedResultName": "bukuteks_trigonometri"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+      "typeVersion": 1.3,
+      "position": [
+        208,
+        1168
+      ],
+      "id": "eaa51664-581e-48ca-b7f6-1b6e34461e98",
+      "name": "bukuteks_trigonometri2",
+      "credentials": {
+        "qdrantApi": {
+          "id": "sFfERYppMeBnFNeA",
+          "name": "Local QdrantApi database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "nomic-embed-text:latest"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOllama",
+      "typeVersion": 1,
+      "position": [
+        208,
+        1312
+      ],
+      "id": "5f8c806e-daf5-4c1a-9ba8-075542a85be6",
+      "name": "Embeddings Ollama9",
+      "credentials": {
+        "ollamaApi": {
+          "id": "xHuYe0MDGOs9IpBW",
+          "name": "Local Ollama service"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Search the SPM Additional Mathematics English textbook \n(Chapter 9: Solution of Triangles, KSSM Form 4) for \nrelevant formulas, definitions, examples, and explanations \nin ENGLISH. Use this tool when the student asks their \nquestion in English or requests an English explanation. \nUse FIRST before answering any question about sine rule, \ncosine rule, area of triangle, Heron's formula, or \nambiguous case. Input should be the student's question \nor the topic they are asking about.",
+        "qdrantCollection": {
+          "__rl": true,
+          "value": "trigonometry_textbook",
+          "mode": "list",
+          "cachedResultName": "trigonometry_textbook"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+      "typeVersion": 1.3,
+      "position": [
+        -48,
+        1168
+      ],
+      "id": "8ecebb3a-2e0c-4192-9399-a2311597f4f2",
+      "name": "trigonometry_textbook2",
+      "credentials": {
+        "qdrantApi": {
+          "id": "sFfERYppMeBnFNeA",
+          "name": "Local QdrantApi database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.cleanedMessage }}",
+        "options": {
+          "systemMessage": "==You are a warm and encouraging SPM Additional Mathematics \ntutor specialising in Chapter 9: Solution of Triangles \n(KSSM Form 4).\n\nTEACHING INSTRUCTION FOR THIS MESSAGE:\n{{ $json.teachingInstruction }}\n\nSTUDENT MESSAGE: {{ $json.cleanedMessage }}\n\nLANGUAGE: {{ $json.language }}\n\n═══════════════════════════════\nYOUR IDENTITY\n═══════════════════════════════\nYou teach Chapter 9 Solution of Triangles only.\nYou are patient, encouraging, and never make \nstudents feel stupid.\nYou always end your response with one follow-up \nquestion to check understanding.\n\nCRITICAL — HOW TO START YOUR RESPONSE:\nNever open with greetings, praise, or filler phrases.\nDo NOT write: \"Hello!\", \"Great question!\", \"That's \nfantastic!\", \"Wah!\", \"Cemerlang!\", \"Tentu!\", \n\"Baiklah!\", or any similar opener.\nStart DIRECTLY with Step 1 of your solution.\nCORRECT opening: \"1. Set up the triangle...\"\nWRONG opening: \"Hello! That's a great problem!\"\n\nCRITICAL — STUDENT NAME:\nNames that appear INSIDE the question \n(e.g. \"Arman walks towards the mountain\", \n\"Farid practises archery\", \"Encik Samad's farm\",\n\"Mei Ling's greeting card\") are FICTIONAL \nCHARACTERS in the word problem.\nThey are NOT the student's name.\nNEVER address the student by any name taken \nfrom inside the question.\nNEVER say \"Hai Arman!\", \"Jom Farid!\", \n\"Baiklah Encik Samad\" or similar.\nRefer to the student only as \"you\" or \"kamu\".\n\n═══════════════════════════════\nKEY FORMULAS\n═══════════════════════════════\nSine Rule:    a/sin A = b/sin B = c/sin C\n\nCosine Rule:  a² = b² + c² - 2bc cos A\n              b² = a² + c² - 2ac cos B\n              c² = a² + b² - 2ab cos C\n\nArea:         L = ½ × a × b × sin C\n\nHeron:        L = √s(s-a)(s-b)(s-c)\n              where s = (a+b+c)/2\n\nMANDATORY TOOL RULE:\nYou are FORBIDDEN from answering any question\nfrom memory alone.\n\nBefore writing ANY answer, you MUST:\n1. Call trigonometry_textbook or bukuteks_trigonometri\n   to retrieve relevant content first.\n2. If numbers are given, call at least one \n   calculation tool.\n\nIf you answer without calling a tool first,\nyou have failed your teaching duty.\nThe student deserves textbook-grounded answers,\nnot answers from your memory.\n\nThis rule has NO exceptions.\nEven if you think you know the answer,\nyou MUST still call the textbook tool first.\n\n═══════════════════════════════\nHOW TO RESPOND — 3 STEPS\n═══════════════════════════════\nSTEP 1 — Search the textbook\n  Always call the textbook tool FIRST.\n  English question → call trigonometry_textbook\n  Malay question   → call bukuteks_trigonometri\n  Mixed language   → call both tools\n  Call the textbook tool ONCE only.\n\nSTEP 2 — Use calculation tools if needed\n  Only call calculation tools if the student \n  gives actual numbers to calculate.\n\n  Choose the right tool:\n  - Two sides + included angle → find_side_cosine\n  - Side-angle pair + angle    → find_side_sine\n  - Side-angle pair + side     → find_angle_sine\n  - Three sides, find angle    → find_angle_cosine\n  - Two sides + angle for area → triangle_area\n  - Three sides for area       → heron_area\n  - Two sides + non-included   → ambiguous_case\n\nCRITICAL — VERIFY THE INCLUDED ANGLE FIRST:\n  Before calling any tool, confirm which angle \n  is the INCLUDED angle — the angle at the vertex \n  where the two known sides MEET.\n\n  If the given angle is NOT between the two known \n  sides → do NOT call find_side_cosine.\n  Use find_angle_sine or find_side_sine instead.\n\n  HOW TO CHECK:\n  Draw the triangle mentally. Label the vertices.\n  The included angle sits at the corner between \n  the two known sides.\n\n  Example 1 — CORRECT use of Cosine Rule:\n    Known: AB=20, AC=15, angle A=75°\n    Angle A is at vertex A — between AB and AC ✓\n    → Call find_side_cosine (b=20, c=15, A=75)\n\n  Example 2 — WRONG, use Sine Rule instead:\n    Known: HK=13, HP=10, angle HKP=50°\n    Angle HKP is at vertex K — between KH and KP\n    KP is unknown → NOT an included angle ✗\n    → Call find_angle_sine or find_side_sine\n\n  Example 3 — Bearing question:\n    Always derive the interior angle from bearings\n    BEFORE deciding which tool to call.\n    The interior angle at the middle point IS \n    the included angle between the two journey sides.\n\n  You may call MORE THAN ONE calculation tool\n  if the question requires multiple steps.\n\n  Examples of multi-step questions:\n  - Bearing: find_side_cosine THEN find_angle_sine\n  - Area with unknown angle: find_angle_cosine\n    THEN triangle_area\n\n  Rules for tool calling:\n  - Only call the next tool when you have the\n    result from the previous tool\n  - Do not call a tool with empty or placeholder\n    values — only use actual numbers from the question\n  - Once all calculations are done, stop calling\n    tools and write your final answer immediately\n\n  HEIGHT PROBLEMS — choose the correct base:\n  When finding the height of a triangle and the\n  question specifies a particular side as the base\n  (e.g. \"height from vertex E to FG\"), use THAT\n  side as the base in: height = (2 × Area) / base.\n  If no base is specified, use the SHORTEST side\n  as the base unless context suggests otherwise.\n\nSTEP 3 — Write your final answer\n  After all tools have been called, write your\n  complete answer in plain text immediately.\n  Follow the TEACHING RULES below.\n  Do not call any more tools after this.\n\n═══════════════════════════════\nTEACHING RULES\n═══════════════════════════════\n1. Write the formula BEFORE substituting values\n2. Show every calculation step explicitly\n   SPM students lose marks for missing working\n3. Use the language the student used\n   Malay question → respond fully in Malay\n   English question → respond fully in English\n4. State the final answer clearly and boldly\n5. End with exactly one follow-up question\n\n═══════════════════════════════\nBEARING PROBLEMS — READ CAREFULLY\n═══════════════════════════════\nBearing problems involve compass directions.\nBearing is always measured clockwise from North.\nWritten as 3 digits: 040, 120, 225, 315.\n\nCRITICAL: You MUST find the interior angle of\nthe triangle BEFORE calling any calculation tool.\nNever use the raw bearing value in a formula.\n\nHOW TO FIND THE INTERIOR ANGLE:\n\nThe interior angle is at the MIDDLE point —\nthe point where the direction changes.\n\nExample: Journey goes A → B → C\nThe middle point is B.\n\nSTEP 1 — Find the reverse bearing at B\n  This is the direction from B back to A.\n  Reverse bearing = bearing of A→B + 180\n  If result is more than 360, subtract 360.\n\n  Example:\n  Bearing A→B = 120\n  Reverse bearing at B = 120 + 180 = 300\n\nSTEP 2 — Find the interior angle at B\n  Interior angle = Reverse bearing − Bearing B→C\n  If result is negative, add 360.\n  Result must be between 0 and 180.\n\n  Example:\n  Reverse bearing at B = 300\n  Bearing B→C = 225\n  Interior angle at B = 300 − 225 = 75\n\nSTEP 3 — Confirm the angle is valid\n  Interior angle must be between 0 and 180.\n  If not, recheck Steps 1 and 2.\n\nSTEP 4 — Call find_side_cosine\n  You now have two sides and the included angle.\n  AB = first journey distance\n  BC = second journey distance\n  Angle at B = interior angle from Step 2\n  Call find_side_cosine with these values.\n\nSTEP 5 — Find the final bearing of C from A\n  After finding AC and angle BAC:\n\n  DETERMINE DIRECTION using this logic:\n  Look at the bearing from A to B (first bearing).\n  Look at where C ends up relative to that path.\n\n  RULE: Compare bearing A→B with bearing B→C\n  If bearing B→C > bearing A→B (going more clockwise)\n  → C is to the RIGHT of the A→B line\n  → Final bearing = bearing A→B + angle BAC\n\n  If bearing B→C < bearing A→B (going less clockwise\n  or turning back left)\n  → C is to the LEFT of the A→B line\n  → Final bearing = bearing A→B − angle BAC\n\n  EXAMPLE (the Port Astaka problem):\n  Bearing A→B = 120°\n  Bearing B→C = 225°\n  225 > 120 → C is to the RIGHT (clockwise)\n  → Final bearing = 120 + 67.12 = 187.12° ✓\n  NEVER do: 120 - 67.12 = 52.89° ✗\n\n  If result > 360, subtract 360.\n  If result < 0, add 360.\n  Always express as 3 digits: 052°, 187°, 305°\n\nALWAYS show bearing working clearly:\n  \"Reverse bearing at B = 120 + 180 = 300\n   Interior angle at B = 300 − 225 = 75\"\n\nCOMMON MISTAKES TO AVOID:\n  Never use raw bearing as triangle angle\n  Never skip the reverse bearing step\n  Interior angle 75 is correct, NOT 105\n  Never add two bearings directly\n  If tools fail, write manual solution — NEVER null\n\n═══════════════════════════════\nFORMAT RULES\n═══════════════════════════════\nPlain text only. Zero LaTeX allowed.\nNo dollar signs, no backslashes, no \\frac,\nno \\tan, no \\sin, no \\cos notation.\n\nWrite maths like this:\n  CORRECT: a/sin A = b/sin B = c/sin C\n  CORRECT: a² = b² + c² - 2bc cos A\n  CORRECT: tan(45°) = h/d\n  CORRECT: h = (800 × tan(20°)) / (1 - tan(20°))\n  WRONG:   $\\tan(45^\\circ) = h/d$\n  WRONG:   \\frac{a}{\\sin A}\n\nUse × for multiply\nUse ² for squared\nUse ° for degrees\nUse plain headers: \"1. Set up the triangle\"\nDo not use markdown hash headers\n\nIMPORTANT:\n  NEVER pass null message to student.\n  if you pass null message you are failed",
+          "maxIterations": 20,
+          "returnIntermediateSteps": true
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        448,
+        720
+      ],
+      "id": "fbea7c69-676d-4b96-93ec-339aa0f8bc18",
+      "name": "Tutor Agent1",
+      "retryOnFail": true,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.sessionId }}",
+        "tableName": "tutor_chatbot_histories",
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        48,
+        416
+      ],
+      "id": "157b4339-f05e-4734-add5-f2fc951467cf",
+      "name": "Postgres Chat Memory8",
+      "credentials": {
+        "postgres": {
+          "id": "yYRZKvj2GpkMvk1B",
+          "name": "tutor agent history"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.sessionId }}",
+        "tableName": "tutor_chatbot_histories",
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        448,
+        928
+      ],
+      "id": "2d941355-b47e-4595-9bbb-b33b4875b385",
+      "name": "Postgres Chat Memory7",
+      "credentials": {
+        "postgres": {
+          "id": "yYRZKvj2GpkMvk1B",
+          "name": "tutor agent history"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        960,
+        528
+      ],
+      "id": "2c76b6c8-8a1c-4169-a04c-00cb24408a3d",
+      "name": "Respond to Webhook3"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "spm-tutor",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1840,
+        1024
+      ],
+      "id": "ed44cd82-32c3-43d2-bfe5-00022dd526ee",
+      "name": "Webhook3",
+      "webhookId": "b1430244-6c57-40b4-ae0b-3f75372d3844"
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Use this tool to retrieve relevant content from the \ntrigonometry textbook (DLP - Dual Language Programme).\n\nUse this tool when:\n- A student asks for a hint and needs an English-language \n  explanation of a trigonometry concept\n- You need to reference a worked example in English\n- The student is asking in English or mixed language (rojak)\n- You need to cross-reference a concept alongside the \n  Malay textbook\n\nThis textbook covers trigonometry topics including:\n- Sine Rule\n- Cosine Rule  \n- Area of Triangle\n- Ambiguous Case\n- Solution of Triangles (3D problems)\n\nUse this tool TOGETHER with the BM textbook tool when \nthe student needs a bilingual explanation, or use this \nalone when the student prefers English.\n\nAlways search this before giving a hint so your guidance \naligns with the DLP curriculum.",
+        "qdrantCollection": {
+          "__rl": true,
+          "value": "trigonometry_textbook",
+          "mode": "list",
+          "cachedResultName": "trigonometry_textbook"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+      "typeVersion": 1.3,
+      "position": [
+        208,
+        384
+      ],
+      "id": "5e462c7a-7ca2-4d82-8538-19f442117785",
+      "name": "trigonometry",
+      "credentials": {
+        "qdrantApi": {
+          "id": "sFfERYppMeBnFNeA",
+          "name": "Local QdrantApi database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Use this tool to retrieve relevant content from the Malaysian \nAdditional Mathematics (Add Math) Form 4 textbook \n(Buku Teks Matematik Tambahan Tingkatan 4, KPM). \n\nUse this tool when:\n- A student asks for a hint on a trigonometry problem\n- You need to reference a textbook example or worked solution\n- You need to explain a concept (Sine Rule, Cosine Rule, \n  Area of Triangle, Ambiguous Case)\n- You want to guide the student using curriculum-aligned content\n\nThis textbook is in Bahasa Melayu and covers Chapter 9: \nPenyelesaian Segi Tiga (Solution of Triangles), including:\n- Petua Sinus (Sine Rule)\n- Petua Kosinus (Cosine Rule)\n- Luas Segi Tiga (Area of Triangle)\n- Kes Berambiguiti (Ambiguous Case)\n\nAlways search this tool before giving a hint, so your \nhint aligns with how the textbook teaches the concept.",
+        "qdrantCollection": {
+          "__rl": true,
+          "value": "bukuteks_trigonometri",
+          "mode": "list",
+          "cachedResultName": "bukuteks_trigonometri"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+      "typeVersion": 1.3,
+      "position": [
+        64,
+        544
+      ],
+      "id": "a205faea-ce03-4f51-9206-5b44e8257bcf",
+      "name": "trigonometri",
+      "credentials": {
+        "qdrantApi": {
+          "id": "sFfERYppMeBnFNeA",
+          "name": "Local QdrantApi database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "nomic-embed-text:latest"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOllama",
+      "typeVersion": 1,
+      "position": [
+        -48,
+        576
+      ],
+      "id": "8a64b324-60a8-463f-9a90-70bd4621c6dd",
+      "name": "Embeddings Ollama",
+      "credentials": {
+        "ollamaApi": {
+          "id": "xHuYe0MDGOs9IpBW",
+          "name": "Local Ollama service"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## THIRD LAYER\n",
+        "height": 1440,
+        "width": 1344,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -160,
+        -32
+      ],
+      "typeVersion": 1,
+      "id": "8185528e-f871-4e1d-a435-9912b92e78d0",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -576,
+        832
+      ],
+      "id": "1c8e7050-57bf-4ef9-b562-ef4fc510458f",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=STUDENT MESSAGE: {{ $json.cleanedMessage }}\n\nLANGUAGE: {{ $json.language }}\n\nHINT LEVEL CONTEXT:\nThis is the student's current message. Check conversation \nmemory to determine if this is their first hint request \nor if they have already received hints on this topic.\nIf they have received hints before on the same problem, \nescalate to the next hint level — do NOT repeat the \nsame guiding question.",
+        "options": {
+          "systemMessage": "You are Cikgu Arif, a warm Socratic tutor for SPM Additional \nMathematics — Chapter 9: Solution of Triangles (KSSM Form 4).\n\nA student is stuck. Your ONLY job is to push them ONE step \nforward by asking ONE precise guiding question.\n\nYou do NOT solve. You do NOT calculate. You do NOT give answers.\n\n═══════════════════════════════════════════\nYOUR IDENTITY\n═══════════════════════════════════════════\n- Patient, warm, never condescending\n- Speak like a real teacher, not a textbook\n- Never open with hollow praise like \"Great question!\"\n- If student sounds frustrated, acknowledge it in \n  ONE short sentence before your guiding question\n- Match language exactly:\n    Malay message   → respond fully in Malay\n    English message → respond fully in English\n    Mixed language  → follow the dominant language\n\n═══════════════════════════════════════════\nSTEP 1 — READ MEMORY FIRST\n═══════════════════════════════════════════\nBefore doing anything, review the conversation history.\n\nAsk yourself these 3 questions:\n  1. What problem is this student working on?\n  2. What formula or step are they stuck on?\n  3. Have I already given a hint on THIS exact step?\n\nIf YES to question 3 — do NOT repeat the same hint.\nMove to the next hint level (see HINT LEVELS below).\n\nIf the student's message is vague (e.g. \"tak faham\", \n\"I'm stuck\", \"hint please\") — use memory to infer \nwhat they were working on before asking them.\n\n═══════════════════════════════════════════\nSTEP 2 — SEARCH THE TEXTBOOK\n═══════════════════════════════════════════\nAlways search before responding. Use the retrieved \ncontent to align your hint with the SPM curriculum.\n\n  Student writes in Malay   → search bukuteks_trigonometri\n  Student writes in English → search trigonometry_textbook\n  Mixed language            → search both\n\nSearch for the CONCEPT, not the student's exact words.\n\n  CORRECT search: \"petua kosinus bila guna dua sisi sudut kandung\"\n  WRONG search:   \"tak faham langkah\"\n\n═══════════════════════════════════════════\nSTEP 3 — USE DIAGNOSTIC TOOLS (if applicable)\n═══════════════════════════════════════════\nAfter searching, use these tools when the condition matches.\nUse the result to INFORM your question.\nNEVER show raw tool output to the student.\n\n── ambiguous_case ──────────────────────────\nWHEN: Student has two sides + one non-included angle \n      (SSA) and is unsure how many triangles exist,\n      or you need to verify before hinting about Sine Rule.\nHOW:  Pass a = side opposite to angle, b = other side, \n      A = the given angle in degrees.\nUSE:  If result = \"two triangles\" → ask:\n      \"Berapa banyak segi tiga yang boleh dibina \n       dengan nilai-nilai itu?\" / \n      \"How many triangles can be formed with those values?\"\n      If result = \"no triangle\" → ask:\n      \"Semak semula — adakah segi tiga itu wujud?\"\n\n── verify_step ─────────────────────────────\nWHEN: Student gives you a specific number they calculated \n      and says it feels wrong, or their working is shown.\nHOW:  Pass step_type (one of: \"sin_value\", \"cos_value\", \n      \"angle_deg\", \"side_length\", \"area\") and value.\nUSE:  If result = invalid →\n      Ask about the mathematical constraint that was broken.\n      Example: sinB = 1.2 → invalid →\n      Ask: \"Apakah nilai maksimum yang sin boleh hasilkan?\" /\n           \"What is the maximum value sin can ever return?\"\n\n── which_formula ───────────────────────────\nWHEN: Student does not know which formula to use, \n      or you need to confirm before hinting.\nHOW:  Pass known_sides (1/2/3), known_angles (1/2), \n      has_included_angle (true/false), \n      want_to_find (\"side\"/\"angle\"/\"area\").\nUSE:  Deliver the hint_question from the result directly.\n      It is already curriculum-aligned.\n      Never mention that you called a tool.\n\n═══════════════════════════════════════════\nSTEP 4 — DETERMINE HINT LEVEL\n═══════════════════════════════════════════\nClassify where the student is, then respond at that level.\n\nLEVEL 1 — Student cannot identify which formula to use\n  Goal: Guide them to recognise what information they have\n  Rule: Do NOT name the formula yet\n  Ask about: What sides and angles are known?\n  Example: \"Maklumat apa yang diberi dalam soalan — \n            berapa sisi dan sudut yang kamu tahu?\"\n\nLEVEL 2 — Student knows the formula but cannot substitute\n  Goal: Help them map values to variables\n  Rule: Name the formula, ask about variable mapping\n  Example: \"Dalam Petua Kosinus, sisi mana yang bertentangan \n            dengan sudut yang diberi?\"\n\nLEVEL 3 — Student substituted but got a wrong intermediate value\n  Goal: Point to the exact wrong step\n  Rule: Call verify_step first if they give a number\n  Example: \"Nilai sin mesti antara -1 dan 1 — \n            semak semula langkah pengiraan itu.\"\n\nLEVEL 4 — Student has right method, wrong arithmetic\n  Goal: Point to the exact arithmetic line\n  Rule: Quote their specific line back to them\n  Example: \"Semak baris ini: 900 + 400 tolak 310.56 — \n            cuba kira semula.\"\n\n═══════════════════════════════════════════\nHINT PROGRESSION — NEVER REPEAT\n═══════════════════════════════════════════\nIf memory shows you already gave Level 1 on this \nsame problem → give Level 2 now.\n\nIf memory shows Level 2 was given → give Level 3.\n\nIf Level 3 was given THREE TIMES on the same step\nand student is still stuck → say exactly this \n(in their language):\n\n  English: \"This step is tricky — shall I show you \n            just this one calculation so we can \n            keep moving forward?\"\n\n  Malay:   \"Langkah ini memang susah — boleh Cikgu \n            tunjukkan langkah ini sahaja supaya kita \n            boleh teruskan?\"\n\nThis is the ONLY time you are allowed to offer \nto show a calculation.\n\n═══════════════════════════════════════════\nSTRICT OUTPUT RULES\n═══════════════════════════════════════════\n1. NEVER state the final answer\n2. NEVER complete any calculation\n3. NEVER write \"substitute x=5 into the formula...\"\n4. Maximum 3 sentences in your full response\n5. Your response MUST end with exactly ONE question\n6. If you exceed 3 sentences — delete everything \n   except your best sentence and the question\n7. No LaTeX. No markdown. No bullet points.\n   Write maths as plain text:\n     CORRECT: a² = b² + c² - 2bc cos A\n     CORRECT: sin B = (b × sin A) / a\n     WRONG:   \\frac{a}{\\sin A}\n     WRONG:   $$a^2 = b^2$$\n\n═══════════════════════════════════════════\nQUALITY CHECK — BEFORE SENDING\n═══════════════════════════════════════════\nBefore writing your final response, verify:\n\n  [ ] Did I search the textbook?\n  [ ] Did I check memory for prior hints on this step?\n  [ ] Is my response 3 sentences or fewer?\n  [ ] Does it end with exactly one question?\n  [ ] Does the question match the correct Hint Level?\n  [ ] Did I avoid giving any answer or calculation?\n  [ ] Is the language matching the student?\n\nIf any box would be unchecked — rewrite before sending."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -48,
+        240
+      ],
+      "id": "d92041ef-0953-4e96-9dcb-c30406908d17",
+      "name": "Hint Agent"
+    },
+    {
+      "parameters": {
+        "jsCode": "const instructionMap = {\n\n  ask_question: `The student wants an explanation.\nExplain the concept clearly in 3-4 steps.\nState the formula first, explain each variable, \nthen show one brief example.\nDo NOT solve the student's specific numbers — \nexplain the concept only.`,\n\n  solve_problem: `The student wants this problem fully solved.\nIMPORTANT: Solve the ACTUAL numbers given by the student.\nUse the available calculation tools to get the exact answer.\nShow EVERY step of working:\nStep 1: Write the formula\nStep 2: Substitute the values  \nStep 3: Calculate and show working\nStep 4: State the final answer clearly\nFor bearing problems: find interior angle FIRST before calculating.\n`,\n\n  worked_example: `The student wants a fully worked solution.\nUse the available calculation tools to get the exact answer.\nShow EVERY step of working, numbered Step 1, Step 2, Step 3...\nAfter showing the answer, explain WHY each step was done.`,\n\n  need_hint: `The student needs a hint, not a full solution.\nGive ONE small clue only — do not solve the problem.\nAsk the student what they think the next step is.`,\n\n  topic_explain: `The student wants a concept overview.\nGive a clear definition first.\nThen explain when this concept appears in SPM questions.\nList the formula(s) with every variable name explained.`,\n\n  off_topic: `This question is outside the topic.\nPolitely redirect the student back to \nChapter 9 Solution of Triangles.`\n};\n\n// ─────────────────────────────────\n// KEYWORD DETECTOR\n// Detects if message needs solving\n// even if Router Agent classifies wrong\n// ─────────────────────────────────\nconst message = (\n  $json.cleanedMessage || \n  $json.chatInput || \n  \"\"\n).toLowerCase();\n\nconst hasBearing = message.includes(\"bearing\");\n\nconst hasNumbers = /\\d/.test(message);\n\nconst hasCalculateWord = \n  message.includes(\"calculate\") ||\n  message.includes(\"find\") ||\n  message.includes(\"cari\") ||\n  message.includes(\"hitung\") ||\n  message.includes(\"distance\") ||\n  message.includes(\"jarak\") ||\n  message.includes(\"estimate\") ||\n  message.includes(\"anggar\") ||\n  message.includes(\"how far\") ||\n  message.includes(\"how long\") ||\n  message.includes(\"berapa\");\n\n// ─────────────────────────────────\n// INTENT DECISION\n// ─────────────────────────────────\nlet intent = $json.intent || \"ask_question\";\n\nif (hasBearing && hasNumbers) {\n  // Bearing + numbers = definitely solve\n  intent = \"solve_problem\";\n\n} else if (hasNumbers && hasCalculateWord) {\n  // Numbers + calculate word = solve\n  intent = \"solve_problem\";\n\n} else {\n  // Otherwise trust the Router Agent\n  if (instructionMap[intent]) {\n    intent = intent;\n  } else {\n    intent = \"ask_question\";\n  }\n}\n\nconst teachingInstruction = \n  instructionMap[intent] || \n  instructionMap[\"ask_question\"];\n\nreturn [{\n  json: {\n    ...$json,\n    intent: intent,\n    teachingInstruction: teachingInstruction\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        64,
+        720
+      ],
+      "id": "a072f73a-cd81-4c24-80f1-4940bb113433",
+      "name": "Code in JavaScript2"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "19e027ac-bbf4-43b1-a8ac-7e99ab807b07",
+              "name": "output",
+              "value": "Saya hanya boleh membantu dengan Matematik Tambahan SPM — Penyelesaian Segitiga. / I can only help with SPM Additional Mathematics — Solution of Triangles. Please ask a maths question! 📐",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -112,
+        896
+      ],
+      "id": "8b594d31-90f8-41a7-8ae9-73fee2d3330b",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ── Strip LaTeX notation ──────────────────\nfunction stripLatex(text) {\n  if (!text) return text;\n  return text\n    .replace(/\\$\\$[\\s\\S]*?\\$\\$/g, match => \n      match.replace(/\\$\\$/g, '').trim())\n    .replace(/\\$([^$\\n]+)\\$/g, '$1')\n    .replace(/\\\\text\\{([^}]+)\\}/g, '$1')\n    .replace(/\\\\frac\\{([^}]+)\\}\\{([^}]+)\\}/g, '$1/$2')\n    .replace(/\\^\\\\circ/g, '°')\n    .replace(/\\\\circ/g, '°')\n    .replace(/\\\\times/g, '×')\n    .replace(/\\\\approx/g, '≈')\n    .replace(/\\\\tan/g, 'tan')\n    .replace(/\\\\sin/g, 'sin')\n    .replace(/\\\\cos/g, 'cos')\n    .replace(/\\\\sqrt\\{([^}]+)\\}/g, '√($1)')\n    .replace(/\\\\left/g, '')\n    .replace(/\\\\right/g, '')\n    .replace(/\\\\\\[/g, '')\n    .replace(/\\\\\\]/g, '')\n    .replace(/\\\\\\(/g, '')\n    .replace(/\\\\\\)/g, '')\n    .replace(/\\\\/g, '')\n    .replace(/\\{|\\}/g, '')\n    .trim();\n}\n\nconst agentResponse = stripLatex(\n  $json.output || $json.text || \"\"\n);\n\nconst intent   = $json.intent   || \"ask_question\";\nconst language = $json.language || \"english\";\nconst isMalay  = language === \"malay\";\n\nconst headerMap = {\n  ask_question:   isMalay ? \"📘 Penjelasan:\"   : \"📘 Explanation:\",\n  solve_problem:  isMalay ? \"✏️ Penyelesaian:\" : \"✏️ Solution:\",\n  worked_example: isMalay ? \"✏️ Penyelesaian Langkah demi Langkah:\" \n                           : \"✏️ Step-by-Step Solution:\",\n  topic_explain:  isMalay ? \"📖 Gambaran Konsep:\" \n                           : \"📖 Concept Overview:\",\n  need_hint:      isMalay ? \"💡 Petunjuk:\" : \"💡 Hint:\",\n  off_topic:      \"\"\n};\n\nconst header = headerMap[intent] || \"\";\nconst formattedResponse = header\n  ? `${header}\\n\\n${agentResponse}`\n  : agentResponse;\n\nreturn [{\n  json: {\n    ...$json,\n    output: formattedResponse\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        752,
+        496
+      ],
+      "id": "ab408f57-5dbd-4afa-a791-10bdcef21b5f",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Calculate the area of a triangle.\n\nUSE WHEN: Two sides AND the angle BETWEEN those two sides \n(included angle) are known as actual numbers.\n\nCONVENTION:\n  a = first side length (positive number, e.g. 8)\n  b = second side length (positive number, e.g. 11)\n  C = the included angle IN DEGREES between sides a and b\n      (positive number between 0 and 180, e.g. 75)\n\nCRITICAL: C must be a real numeric angle value.\nNEVER call this tool if C is unknown, symbolic, \nor represented as a variable like \"theta\", \"angle_C\", \"C\".\nIf C is unknown → use find_angle_from_area or heron_area instead.\nIf no angle exists → use heron_area instead.",
+        "url": "http://host.docker.internal:8000/triangle-area",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "a",
+              "value": "={{ $fromAI(\"a\") }}"
+            },
+            {
+              "name": "b",
+              "value": "={{ $fromAI(\"b\") }}"
+            },
+            {
+              "name": "C",
+              "value": "={{ $fromAI(\"C\") }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.4,
+      "position": [
+        560,
+        1456
+      ],
+      "id": "230ad794-360c-4c6a-b6d5-ff66180c50e6",
+      "name": "triangle_area"
+    },
+    {
+      "parameters": {
+        "content": "## SECOND LAYER\n",
+        "height": 640,
+        "width": 1444,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1456,
+        496
+      ],
+      "typeVersion": 1,
+      "id": "acbfd4de-df79-48ef-a3dc-ea5a307a03d2",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ═══════════════════════════════════════════════════\n// PARSE INTENT CODE NODE  — v2\n// \n// PURPOSE:\n// 1. Extract the intent label from Router Agent output\n// 2. Apply keyword safety net for solve_problem\n// 3. Validate and fallback gracefully\n// ═══════════════════════════════════════════════════\n\n\n// ── STEP 1: Get the raw Router Agent output ──────────\nconst rawOutput = (\n  $json.output || $json.text || \"\"\n).toLowerCase().trim();\n\n\n// ── STEP 2: Clean to letters and underscores only ────\n// This removes punctuation, spaces, newlines, numbers\n// so \"ask_question.\" → \"ask_question\"\nconst cleaned = rawOutput.replace(/[^a-z_]/g, \"\");\n\n\n// ── STEP 3: All valid intents (MUST match Switch node) \n// solve_problem is INCLUDED — this was the missing label\nconst validIntents = [\n  \"solve_problem\",    // ← ADDED: numbers + calculation\n  \"ask_question\",     // how something works / explanation\n  \"need_hint\",        // student is stuck / needs clue\n  \"worked_example\",   // show me a full solved example\n  \"topic_explain\",    // what is X / define X\n  \"off_topic\"         // unrelated to Additional Maths\n];\n\n\n// ── STEP 4: Try to match Router Agent label exactly ──\n// We check for exact label match first (preferred)\n// Then fall back to substring match (less strict)\nlet intent = null;\n\n// EXACT MATCH: cleaned output IS one of the labels\nfor (const candidate of validIntents) {\n  if (cleaned === candidate) {\n    intent = candidate;\n    break;\n  }\n}\n\n// SUBSTRING MATCH: label appears inside a longer output\n// e.g. LLM said \"the label is ask_question\" instead of\n// just \"ask_question\"\nif (!intent) {\n  for (const candidate of validIntents) {\n    if (cleaned.includes(candidate)) {\n      intent = candidate;\n      break;\n    }\n  }\n}\n\n\n// ── STEP 5: Keyword safety net for solve_problem ─────\n// If Router Agent misclassified but message clearly\n// contains numbers + action word → override to solve\nconst message = (\n  $json.cleanedMessage ||\n  $json.chatInput ||\n  \"\"\n).toLowerCase();\n\nconst hasNumbers = /\\d/.test(message);\n\nconst hasBearing = message.includes(\"bearing\");\n\nconst hasCalculateWord =\n  message.includes(\"calculate\") ||\n  message.includes(\"find\") ||\n  message.includes(\"cari\") ||\n  message.includes(\"hitung\") ||\n  message.includes(\"selesaikan\") ||\n  message.includes(\"solve\") ||\n  message.includes(\"distance\") ||\n  message.includes(\"jarak\") ||\n  message.includes(\"estimate\") ||\n  message.includes(\"anggar\") ||\n  message.includes(\"how far\") ||\n  message.includes(\"how long\") ||\n  message.includes(\"berapa\") ||\n  message.includes(\"luas\") ||\n  message.includes(\"buktikan\") ||\n  message.includes(\"tunjukkan\") ||\n  message.includes(\"work out\") ||\n  message.includes(\"kirakan\");\n\n// Override: bearing + numbers always = solve_problem\nif (hasBearing && hasNumbers) {\n  intent = \"solve_problem\";\n\n// Override: numbers + action word = solve_problem\n// BUT only if Router Agent didn't clearly say need_hint\n// or worked_example (respect those classifications)\n} else if (\n  hasNumbers &&\n  hasCalculateWord &&\n  intent !== \"need_hint\" &&\n  intent !== \"worked_example\" &&\n  intent !== \"off_topic\"\n) {\n  intent = \"solve_problem\";\n}\n\n\n// ── STEP 6: Final fallback ───────────────────────────\n// If nothing matched at all, default to ask_question\nif (!intent) {\n  intent = \"ask_question\";\n}\n\n\n// ── STEP 7: Return with full context preserved ───────\nreturn [{\n  json: {\n    ...$json,\n    intent,\n    routedAt: new Date().toISOString(),\n\n    // Debug fields — helps you trace issues in Executions\n    _debug: {\n      rawRouterOutput: rawOutput,\n      cleanedOutput:   cleaned,\n      resolvedBy:      cleaned === intent\n                         ? \"exact_match\"\n                         : hasNumbers && hasCalculateWord\n                           ? \"keyword_override\"\n                           : \"substring_match\"\n    }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -400,
+        672
+      ],
+      "id": "88bac8bc-a989-42f3-90df-1afc6b35cf9d",
+      "name": "Parse Intent Code Node"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.intent }}",
+                    "rightValue": "ask_question",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "44972e6e-5102-47ed-a23e-b6582c6d2f9e"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "343ef37e-0961-40d0-86c0-b1c644bf0801",
+                    "leftValue": "={{ $json.intent }}",
+                    "rightValue": "need_hint",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "399c1b20-bca1-4027-bb19-7debdc75c579",
+                    "leftValue": "={{ $json.intent }}",
+                    "rightValue": "worked_example",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "2d8b9a60-c5bd-4850-9e73-65fc832730c9",
+                    "leftValue": "={{ $json.intent }}",
+                    "rightValue": "topic_explain",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "85a04205-3c21-4cf6-bce1-18bfbdbe173a",
+                    "leftValue": "={{ $json.intent }}",
+                    "rightValue": "off_topic",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "89c2bacd-12ac-4cec-9e0f-360a325a2437",
+                    "leftValue": "={{ $json.intent }}",
+                    "rightValue": "solve_problem",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -256,
+        656
+      ],
+      "id": "ffd6af9e-b619-4d04-9431-3a79771ed273",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.cleanedMessage }}",
+        "options": {
+          "systemMessage": "You are an intent classifier for an SPM Additional Mathematics \ntutoring chatbot (Chapter 9: Solution of Triangles).\n\nYour ONLY job is to read the student's message and output \nexactly ONE label from the list below.\n\n══════════════════════════════════\nLABELS AND THEIR MEANING\n══════════════════════════════════\n\nsolve_problem\n→ Student provides actual numbers AND wants them calculated.\n→ Triggers when: numbers (measurements, angles, distances) \n  are present AND the student wants a solution.\n→ Keywords: calculate, find, cari, hitung, selesaikan, \n  berapa, how far, how long, jarak, distance, bearing,\n  luas, area, prove, tunjukkan, solve, work out.\n→ Example: \"Find AC if AB=5, BC=7, angle B=40°\"\n→ Example: \"Cari luas segi tiga jika a=6, b=8, C=30°\"\n→ Example: \"A ship travels 20km on bearing 120, then 30km \n  on bearing 225. Find the distance back to start.\"\n\nworked_example\n→ Student wants to SEE a full solved example, but did NOT \n  provide their own numbers.\n→ Keywords: tunjuk cara, show me how, show me an example, \n  contoh, example, how to solve, macam mana nak buat.\n→ Example: \"Show me how to use the cosine rule\"\n→ Example: \"Tunjuk cara guna petua sinus\"\n\nask_question\n→ Student asks how something works or wants explanation \n  of a concept, formula, or step.\n→ Keywords: how does, why, what is, explain, terangkan, \n  apakah, kenapa, bagaimana ia berfungsi.\n→ Example: \"How does the sine rule work?\"\n→ Example: \"Why do we use the cosine rule?\"\n→ Example: \"What is the ambiguous case?\"\n\ntopic_explain\n→ Student wants a general overview or definition of a topic.\n→ Keywords: what is, apakah itu, define, takrifkan, \n  overview, apa itu.\n→ Example: \"What is Heron's formula?\"\n→ Example: \"Apa itu kes berambiguiti?\"\n→ NOTE: If unsure between ask_question and topic_explain, \n  choose ask_question.\n\nneed_hint\n→ Student is stuck and needs a clue, NOT a full solution.\n→ ONLY use this when the student explicitly says they are \n  stuck or confused — NOT when they ask how something works.\n→ Exact triggers: \"tak faham\", \"I don't understand\", \n  \"I'm stuck\", \"help me\", \"hint\", \"clue\", \"tolong\",\n  \"saya tak tahu nak mula\", \"I don't know where to start\",\n  \"boleh bagi hint\", \"apa langkah seterusnya\"\n→ Example: \"I'm stuck on step 2, can I get a hint?\"\n→ Example: \"Tak faham macam mana nak cari sudut BAC\"\n→ NOT need_hint: \"How does the sine rule work?\" → ask_question\n→ NOT need_hint: \"Explain ambiguous case\" → ask_question\n\noff_topic\n→ Message has nothing to do with Additional Mathematics.\n→ Example: \"What's the weather today?\"\n→ Example: \"Who is the prime minister of Malaysia?\"\n\n══════════════════════════════════\nDECISION RULES — READ IN ORDER\n══════════════════════════════════\n\nRULE 1: Does the message contain numbers AND a request \n        to calculate, find, or solve?\n        → YES → solve_problem\n\nRULE 2: Does the message ask for an example or \n        demonstration WITHOUT providing their own numbers?\n        → YES → worked_example\n\nRULE 3: Does the message contain \"tak faham\", \"stuck\", \n        \"hint\", \"tolong\", or similar stuck-phrases?\n        → YES → need_hint\n\nRULE 4: Does the message ask \"what is X\" or want \n        a definition of a single term?\n        → YES → topic_explain\n\nRULE 5: Does the message ask how something works \n        or why something is done?\n        → YES → ask_question\n\nRULE 6: Is the message unrelated to mathematics?\n        → YES → off_topic\n\nDEFAULT: If none of the above clearly match → ask_question\n\n══════════════════════════════════\nOUTPUT FORMAT\n══════════════════════════════════\nOutput ONLY the single label. \nNo explanation. No punctuation. No extra words.\n\nSTUDENT MESSAGE: {{ $json.cleanedMessage }}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -848,
+        544
+      ],
+      "id": "a456e6da-382d-4271-853c-70b71676894b",
+      "name": "Router Agent"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "6658d6e4-4030-4d65-9b7b-d2df62dd11fc",
+              "leftValue": "={{ $json.hasImage }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -1440,
+        768
+      ],
+      "id": "06aff189-3232-41b0-b2e2-99729b34b460",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "content": "## FIRST LAYER\n",
+        "height": 224,
+        "width": 560
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1952,
+        944
+      ],
+      "typeVersion": 1,
+      "id": "9ca453df-9449-4cea-87db-439c50e91f80",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Webhook sends: body.chatInput, body.sessionId\n// + NEW: body.hasImage, body.image, body.imageType\nconst rawMessage = $json.body?.chatInput || $json.body?.message || $json.chatInput || $json.message || \"\";\nconst sessionId  = $json.body?.sessionId || $json.sessionId || \"default\";\n\n// ── NEW: read image fields from webhook body ──\nconst hasImage  = $json.body?.hasImage  === true && !!$json.body?.image;\nconst image     = hasImage ? $json.body.image     : null;\nconst imageType = hasImage ? $json.body.imageType : null;\n\nconst cleanedMessage = rawMessage.trim();\n\nconst malayKeywords = /\\b(cari|hitung|tunjuk|buktikan|diberi|segi|tiga|sudut|panjang|luas|nilai|apakah|petua|kosinus)\\b/i;\nconst language = malayKeywords.test(rawMessage) ? \"malay\" : \"english\";\n\n// ── UPDATED: meaningful if has text OR has image ──\nconst isMeaningful = cleanedMessage.length > 3 || hasImage;\n\nreturn [{\n  json: {\n    sessionId,\n    chatInput:       cleanedMessage,\n    originalMessage: rawMessage,\n    cleanedMessage,\n    timestamp:       new Date().toISOString(),\n    language,\n    isMeaningful,\n    // ── NEW image fields ──\n    hasImage,\n    image,\n    imageType,\n    metadata: {\n      source:  \"webhook\",\n      subject: \"additional_mathematics\",\n      topic:   \"solution_of_triangles\",\n      syllabus: \"KSSM_Form4\"\n    }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1616,
+        1024
+      ],
+      "id": "caf708dc-010b-4d63-b0b3-d5a60d73eb69",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Determine how many triangles exist given two sides and \na non-included angle (SSA condition).\n\nUSE WHEN: Two sides and an angle are given BUT the angle \nis NOT between the two known sides.\nCall this BEFORE using find_angle_sine in SSA situations.\n\nCONVENTION:\n  a = the side OPPOSITE to the given angle A (number)\n  b = the other known side (number)\n  A = the given angle IN DEGREES (number)\n\nReturns one of:\n  \"No triangle exists\"\n  \"One right triangle exists\"  \n  \"Two triangles exist\"\n  \"One triangle exists\"\n\nEXAMPLE: a=4, b=8, angle A=20°\n→ Call with a=4, b=8, A=20",
+        "url": "http://host.docker.internal:8000/ambiguous-case",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "a",
+              "value": "=={{ $fromAI(\"a\") }}"
+            },
+            {
+              "name": "b",
+              "value": "=={{ $fromAI(\"b\") }}"
+            },
+            {
+              "name": "A",
+              "value": "=={{ $fromAI(\"A\") }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.4,
+      "position": [
+        560,
+        1600
+      ],
+      "id": "d6e2d640-8ac2-45f7-a1b4-68ee28919961",
+      "name": "ambiguous_case"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Calculate the area of a triangle using Heron's Formula.\n\nUSE WHEN: All three side lengths are known but NO angle is given.\nAlso use when triangle_area cannot be used because the angle is unknown.\n\nCONVENTION:\n  a = first side length (positive number)\n  b = second side length (positive number)\n  c = third side length (positive number)\n\nAll three inputs must be positive numbers.\nThe tool validates the triangle inequality automatically.\n\nEXAMPLE: sides 27, 8, 28 → Call with a=27, b=8, c=28",
+        "url": "http://host.docker.internal:8000/heron-area",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "a",
+              "value": "={{ $fromAI(\"a\") }}"
+            },
+            {
+              "name": "b",
+              "value": "={{ $fromAI(\"b\") }}"
+            },
+            {
+              "name": "c",
+              "value": "={{ $fromAI(\"c\") }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.4,
+      "position": [
+        688,
+        1456
+      ],
+      "id": "3cfd5ff0-db90-4eb9-a49b-c0c349e3eb42",
+      "name": "heron_area"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Find an unknown angle of a triangle using the Cosine Rule.\n\nUSE WHEN: All three side lengths are known and you need \nto find one of the angles.\n\nCONVENTION — parameter mapping:\n  a = the side OPPOSITE to the angle you want to find\n  b = one of the other sides\n  c = the remaining side\n\nThe tool returns angle A — the angle OPPOSITE to side a.\n\nEXAMPLE: sides are 27, 8, 28 and you want the angle \nopposite the side of length 27\n→ Call with a=27, b=8, c=28\n→ Returns angle A opposite to the 27 side\n\nAll inputs must be positive numbers. No units.",
+        "url": "http://host.docker.internal:8000/cosine/find-angle",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "a",
+              "value": "={{ $fromAI(\"a\") }}"
+            },
+            {
+              "name": "b",
+              "value": "={{ $fromAI(\"b\") }}"
+            },
+            {
+              "name": "c",
+              "value": "={{ $fromAI(\"c\") }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.4,
+      "position": [
+        688,
+        1312
+      ],
+      "id": "c952210d-c999-4b83-b234-90576c85dbe4",
+      "name": "find_angle_cosine"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Find an unknown angle of a triangle using the Sine Rule.\n\nUSE WHEN: One complete side-angle pair is known \n(a side AND its opposite angle) PLUS one more side is known.\n\nCONVENTION — parameter mapping:\n  a = side that forms the KNOWN side-angle pair (number)\n  A = angle IN DEGREES OPPOSITE to side a (number)\n  b = the other known side whose opposite angle you want (number)\n\nThe tool returns angle B — opposite to side b.\n\nCRITICAL: a and A must be directly OPPOSITE each other.\nIf sinB > 1, the tool returns an error — check ambiguous case.\n\nEXAMPLE: a=31.455, A=75°, b=30\n→ Call with a=31.455, A=75, b=30\n→ Returns angle B opposite to the 30-unit side\n\nNEVER pass symbolic values or variable names.\nAll inputs must be actual numbers from your calculation.",
+        "url": "http://host.docker.internal:8000/sine/find-angle",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "a",
+              "value": "={{ $fromAI(\"a\") }}"
+            },
+            {
+              "name": "A",
+              "value": "={{ $fromAI(\"A\") }}"
+            },
+            {
+              "name": "b",
+              "value": "={{ $fromAI(\"b\") }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.4,
+      "position": [
+        688,
+        1168
+      ],
+      "id": "b8255ab1-a411-4530-a64c-bea3c37a9b6b",
+      "name": "find_angle_sine"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Find an unknown side of a triangle using the Sine Rule.\n\nUSE WHEN: One complete side-angle pair is known \n(a side AND its opposite angle) PLUS one more angle is known.\n\nCONVENTION — parameter mapping:\n  a = the known side (number)\n  A = the angle IN DEGREES directly OPPOSITE to side a (number)\n  B = the angle IN DEGREES opposite to the side you want to find\n\nThe tool returns side b — opposite to angle B.\n\nCRITICAL: a and A must be OPPOSITE to each other in the triangle.\nIf A is the angle at vertex A, then a is the side BC (not AB or AC).\n\nEXAMPLE: a=20, angle opposite a = 48°, \n         angle opposite unknown side = 98.13°\n→ Call with a=20, A=48, B=98.13\n→ Returns the unknown side\n\nNEVER pass symbolic values. All inputs must be numbers.",
+        "url": "http://host.docker.internal:8000/sine/find-side",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "a",
+              "value": "={{ $fromAI(\"a\") }}"
+            },
+            {
+              "name": "A",
+              "value": "={{ $fromAI(\"A\") }}"
+            },
+            {
+              "name": "B",
+              "value": "={{ $fromAI(\"B\") }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.4,
+      "position": [
+        560,
+        1168
+      ],
+      "id": "fd2e232c-9d25-4479-a00c-a8a87861b85d",
+      "name": "find-side-sine"
+    },
+    {
+      "parameters": {
+        "content": "## CHAPTER 9 FORM 4\n",
+        "height": 720,
+        "width": 304,
+        "color": "#D01695"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        512,
+        1072
+      ],
+      "typeVersion": 1,
+      "id": "4da009a5-1830-4efb-9751-16ed1e8319a2",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "## TEXT BOOK",
+        "height": 400,
+        "width": 624,
+        "color": "#11D466"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -112,
+        1072
+      ],
+      "typeVersion": 1,
+      "id": "9e88e82b-9f74-41bb-8de6-a4605460a257",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Use this tool when the student has been given TWO SIDES \nand ONE NON-INCLUDED ANGLE (SSA condition) and is stuck \nor unsure how many triangles can be formed.\n\nCall this BEFORE giving a hint about the Sine Rule \nwhenever the student provides two side lengths and \none angle that is NOT between those sides.\n\nParameters (pass as query params):\n  a = the side OPPOSITE to the given angle (number)\n  b = the other known side (number)  \n  A = the given angle in degrees (number)\n\nThe tool returns whether: no triangle, one triangle, \nor two triangles exist.\n\nUse the result to guide your Socratic question — \ndo NOT show the raw result to the student.\n\nExample: student says \"I have a=4, b=8, angle A=20°, \nI don't know which case this is\"\n→ Call ambiguous_case with a=4, b=8, A=20\n→ Use the result to ask: \"How many triangles do you \n  think can be drawn with those values?\"",
+        "url": "http://host.docker.internal:8000/ambiguous-case",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "a",
+              "value": "= {{ $fromAI(\"a\") }}"
+            },
+            {
+              "name": "b",
+              "value": "= ={{ $fromAI(\"b\") }}"
+            },
+            {
+              "name": "A",
+              "value": "= ={{ $fromAI(\"A\") }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.4,
+      "position": [
+        464,
+        240
+      ],
+      "id": "59e78e67-fc12-445f-8e3c-9fd21874578d",
+      "name": "ambiguous_case1"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Use this tool to validate a student's INTERMEDIATE \ncalculation value — not to solve the problem, but to \ncheck if their step result is mathematically possible.\n\nCall this when the student shows you a value they \ncalculated and seems stuck or says their answer \nis wrong.\n\nParameters (pass as query params):\n  step_type = one of these exact strings:\n    \"sin_value\"   → student computed a sin result\n    \"cos_value\"   → student computed a cos result\n    \"angle_deg\"   → student computed an angle\n    \"side_length\" → student computed a side length\n    \"area\"        → student computed an area\n  value = the number the student got (number)\n\nThe tool returns whether the value is valid or \ninvalid, and the rule that was violated.\n\nUse the result to ask a targeted Socratic question.\nNEVER show the tool output text to the student.\n\nExample: student says \"I got sin B = 1.2 but \nsomething feels wrong\"\n→ Call verify_step with step_type=\"sin_value\", value=1.2\n→ Tool returns invalid\n→ Ask: \"What is the largest value that sin of any \n  angle can ever be?\"\n\nExample: student says \"I got angle C = 200°\"\n→ Call verify_step with step_type=\"angle_deg\", value=200\n→ Tool returns invalid\n→ Ask: \"Can an interior angle of a triangle ever \n  be larger than 180°?\"",
+        "url": "http://host.docker.internal:8000/verify-step",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "step_type",
+              "value": "={{ $fromAI(\"step_type\") }}"
+            },
+            {
+              "name": "value",
+              "value": "={{ $fromAI(\"value\") }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.4,
+      "position": [
+        608,
+        240
+      ],
+      "id": "949fdaa8-2dfd-4377-a79d-ef19d2c79e10",
+      "name": "verify_step"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Use this tool when the student does NOT know which \nformula to use — Sine Rule, Cosine Rule, or Area formula.\n\nCall this when the student says they are stuck on \nchoosing a formula, or when you need to confirm \nwhich formula applies before giving a hint.\n\nParameters (pass as query params):\n  known_sides         = number of known sides (1, 2, or 3)\n  known_angles        = number of known angles (1 or 2)\n  has_included_angle  = true if the known angle is BETWEEN \n                        the two known sides, false otherwise\n  want_to_find        = what the student is solving for:\n                        \"side\", \"angle\", or \"area\"\n\nThe tool returns the correct formula name AND a \nready-made hint question you can deliver directly.\n\nUse the hint_question field from the result as your \nSocratic question — it is already curriculum-aligned.\n\nNEVER tell the student you called this tool.\nNEVER say \"According to the formula selector...\"\n\nExample: student says \"I have two sides and the \nangle between them, I want to find the third side\"\n→ Call which_formula with known_sides=2, \n  known_angles=1, has_included_angle=true, \n  want_to_find=\"side\"\n→ Tool returns Cosine Rule + hint question\n→ Deliver the hint question naturally",
+        "url": "http://host.docker.internal:8000/which-formula",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "known_sides",
+              "value": "={{ $fromAI(\"known_sides\") }}"
+            },
+            {
+              "name": "known_angles",
+              "value": "={{ $fromAI(\"known_angles\") }}"
+            },
+            {
+              "name": "has_included_angle",
+              "value": "={{ $fromAI(\"has_included_angle\") }}"
+            },
+            {
+              "name": "want_to_find",
+              "value": "={{ $fromAI(\"want_to_find\") }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.4,
+      "position": [
+        752,
+        240
+      ],
+      "id": "c923e4ca-92d9-4e21-b4f6-ed4d0d8da65f",
+      "name": "which_formula"
+    },
+    {
+      "parameters": {
+        "model": "qwen/qwen3.5-flash-02-23",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        -64,
+        416
+      ],
+      "id": "83e77767-afb3-4bb0-9391-c4034c20ad7a",
+      "name": "qwen3.5 flash",
+      "credentials": {
+        "openRouterApi": {
+          "id": "ojPaMkaeU7z0Qory",
+          "name": "USE YOUR API KEY"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "google/gemini-2.5-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        288,
+        896
+      ],
+      "id": "e39bd353-c01f-47c6-82df-103505e186de",
+      "name": "gemini 2.5 flash",
+      "credentials": {
+        "openRouterApi": {
+          "id": "ojPaMkaeU7z0Qory",
+          "name": "USE YOUR API KEY"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "Use this tool when the area of a triangle and two of \nits sides are known, and you need to find the included \nangle between those two sides.\n\nFormula used: sin C = (2 × Area) / (a × b)\n\nParameters:\n  area = the known area of the triangle (number)\n  a    = first known side (number)\n  b    = second known side (number)\n\nReturns angle C in degrees.",
+        "url": "http://host.docker.internal:8000/find-angle-from-area",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "a",
+              "value": "={{ $fromAI(\"a\") }}"
+            },
+            {
+              "name": "b",
+              "value": "={{ $fromAI(\"b\") }}"
+            },
+            {
+              "name": "area",
+              "value": "={{ $fromAI(\"area\") }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.4,
+      "position": [
+        688,
+        1600
+      ],
+      "id": "d4ef45ff-83da-43f9-ae65-59f2cab9df8c",
+      "name": "angle_from_area"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Find the unknown third side of a triangle using the Cosine Rule.\n\nUSE WHEN: Two sides are known AND the angle BETWEEN those \ntwo sides (the included angle) is known.\n\nCONVENTION — parameter mapping:\n  b = one known side (number, e.g. 20)\n  c = other known side (number, e.g. 30)\n  A = the angle IN DEGREES between sides b and c (number, e.g. 75)\n\nThe tool returns side a — the side OPPOSITE to angle A.\n\nEXAMPLE: AB=20, BC=30, angle at B = 75°\n→ Call with b=20, c=30, A=75\n→ Returns AC (the side opposite the 75° angle)\n\nNEVER pass a variable name like \"theta\" or \"angle_B\" as A.\nA must always be a numeric value in degrees.",
+        "url": "http://host.docker.internal:8000/cosine/find-side",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "b",
+              "value": "={{ $fromAI(\"b\") }}"
+            },
+            {
+              "name": "c",
+              "value": "={{ $fromAI(\"c\") }}"
+            },
+            {
+              "name": "A",
+              "value": "={{ $fromAI(\"A\") }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.4,
+      "position": [
+        560,
+        1312
+      ],
+      "id": "2da941b5-1e43-4530-ae57-c7cd3ae4fae7",
+      "name": "find_side_cosine"
+    },
+    {
+      "parameters": {
+        "model": "qwen2.5:3b",
+        "options": {
+          "temperature": 0,
+          "numPredict": 20
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        -832,
+        688
+      ],
+      "id": "adb313d6-36e6-4002-99ad-56e3babb423c",
+      "name": "qwen2.5:3b",
+      "credentials": {
+        "ollamaApi": {
+          "id": "xHuYe0MDGOs9IpBW",
+          "name": "Local Ollama service"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "nomic-embed-text:latest"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOllama",
+      "typeVersion": 1,
+      "position": [
+        -48,
+        1312
+      ],
+      "id": "d0b4f2a5-dbca-4505-8afe-dc3813307e5b",
+      "name": "nomic-embed-text:latest",
+      "credentials": {
+        "ollamaApi": {
+          "id": "xHuYe0MDGOs9IpBW",
+          "name": "Local Ollama service"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Embeddings Ollama10": {
+      "ai_embedding": [
+        [
+          {
+            "node": "trigonometry",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge5": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          },
+          {
+            "node": "Router Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript13": {
+      "main": [
+        [
+          {
+            "node": "Merge5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript13",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "bukuteks_trigonometri2": {
+      "ai_tool": [
+        [
+          {
+            "node": "Tutor Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Ollama9": {
+      "ai_embedding": [
+        [
+          {
+            "node": "bukuteks_trigonometri2",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "trigonometry_textbook2": {
+      "ai_tool": [
+        [
+          {
+            "node": "Tutor Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tutor Agent1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Chat Memory8": {
+      "ai_memory": [
+        [
+          {
+            "node": "Hint Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Chat Memory7": {
+      "ai_memory": [
+        [
+          {
+            "node": "Tutor Agent1",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook3": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "trigonometry": {
+      "ai_tool": [
+        [
+          {
+            "node": "Hint Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "trigonometri": {
+      "ai_tool": [
+        [
+          {
+            "node": "Hint Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Ollama": {
+      "ai_embedding": [
+        [
+          {
+            "node": "trigonometri",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Parse Intent Code Node",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hint Agent": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript2": {
+      "main": [
+        [
+          {
+            "node": "Tutor Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "triangle_area": {
+      "ai_tool": [
+        [
+          {
+            "node": "Tutor Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Intent Code Node": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Hint Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Router Agent": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Merge5",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ambiguous_case": {
+      "ai_tool": [
+        [
+          {
+            "node": "Tutor Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "heron_area": {
+      "ai_tool": [
+        [
+          {
+            "node": "Tutor Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "find_angle_cosine": {
+      "ai_tool": [
+        [
+          {
+            "node": "Tutor Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "find_angle_sine": {
+      "ai_tool": [
+        [
+          {
+            "node": "Tutor Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "find-side-sine": {
+      "ai_tool": [
+        [
+          {
+            "node": "Tutor Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ambiguous_case1": {
+      "ai_tool": [
+        [
+          {
+            "node": "Hint Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "verify_step": {
+      "ai_tool": [
+        [
+          {
+            "node": "Hint Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "which_formula": {
+      "ai_tool": [
+        [
+          {
+            "node": "Hint Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "qwen3.5 flash": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Hint Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "gemini 2.5 flash": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Tutor Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "angle_from_area": {
+      "ai_tool": [
+        [
+          {
+            "node": "Tutor Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "find_side_cosine": {
+      "ai_tool": [
+        [
+          {
+            "node": "Tutor Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "qwen2.5:3b": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Router Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "nomic-embed-text:latest": {
+      "ai_embedding": [
+        [
+          {
+            "node": "trigonometry_textbook2",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "18811b53-749f-41f4-98b7-03d7f64b8a1e",
+  "meta": {
+    "instanceId": "558d88703fb65b2d0e44613bc35916258b0f0bf983c5d4730c00c424b77ca36a"
+  },
+  "id": "hUnaqSL3Hv9I8FBV",
+  "tags": []
+}
