@@ -20,8 +20,8 @@ x-n8n: &service-n8n
     - N8N_ENCRYPTION_KEY
     - N8N_USER_MANAGEMENT_JWT_SECRET
     - OLLAMA_HOST=${OLLAMA_HOST:-ollama:11434}
-    - WEBHOOK_URL=https://imitative-nontemporizingly-pearlie.ngrok-free.dev
-    - EDITOR_BASE_URL=https://imitative-nontemporizingly-pearlie.ngrok-free.dev
+    - WEBHOOK_URL=https://your-ngrok-url.ngrok-free.dev
+    - EDITOR_BASE_URL=https://your-ngrok-url.ngrok-free.dev
     - N8N_DEFAULT_BINARY_DATA_MODE=filesystem
     - N8N_COMMUNITY_PACKAGE_ALLOW_TOOL_USAGE=true
     - N8N_RUNNERS_ENABLED=true
