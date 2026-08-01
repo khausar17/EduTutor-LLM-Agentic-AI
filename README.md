@@ -4,6 +4,10 @@ An end-to-end AI tutoring system for **SPM Additional Mathematics**, built as a 
 
 EduTutor combines a **multi-agent architecture** (Router → Tutor → Hint), **Retrieval-Augmented Generation (RAG)** over curriculum-aligned materials, and a self-hosted local AI stack to deliver personalized, step-by-step math tutoring without relying on a single monolithic chatbot.
 
+## Demo
+
+https://github.com/user-attachments/assets/10254c1f-caba-49f5-8b93-37cf200e76b8
+
 ## How it works
 
 - **Router Agent** — classifies the student's query and decides which specialist agent should respond.
